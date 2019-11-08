@@ -1,7 +1,8 @@
 pub enum DBResponse {
-    OK(String),
+    Ok(String),
     Invalid(String),
     Error(String),
+    Unknown,
 }
 
 pub struct DBEngine {
@@ -16,7 +17,11 @@ impl DBEngine {
     }
 
     pub fn process(&self, command_line: &str) -> DBResponse {
-        let result = format!("DBEngine({}) {}", self.path, command_line);
-        DBResponse::OK(result)
+        let tokens: Vec<&str> = command_line.split(' ').collect();
+        if tokens.len() == 0 {
+            return DBResponse::Invalid("Empty command string".to_string());
+        }
+        //let result = format!("DBEngine({}) {}", self.path, command_line);
+        DBResponse::Unknown
     }
 }
