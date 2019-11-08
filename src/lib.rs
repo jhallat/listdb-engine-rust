@@ -32,7 +32,7 @@ impl DBEngine {
             return DBResponse::Invalid("List requires a type".to_string());
         }
         if args.len() > 1 {
-            return DBResponse::Invalid("List only takes one argument: <type>".to_string());
+            return DBResponse::Invalid("List only takes one parameter: <type>".to_string());
         }
         let target: &str = &args[0].to_string().trim().to_uppercase();
         match target {
@@ -52,6 +52,21 @@ impl DBEngine {
         DBResponse::Data(items)
     }
 
+    fn create(&self, args: &[&str]) -> DBResponse {
+        if args.len() != 2 {
+            return DBResponse::Invalid("Create takes two parameters: <type> <id>".to_string());
+        }
+        let target: &str = &args[0].to_string().trim().to_uppercase();
+        match target {
+            "TOPIC" => {
+                self.topics.create(args[1]);
+                let response = format!("Topic {} created.", args[1]);
+                DBResponse::ROk(response.to_string())
+            }
+            _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+        }
+    }
+
     pub fn process(&self, command_line: &str) -> DBResponse {
         let tokens: Vec<&str> = command_line.split(' ').collect();
         if tokens.len() == 0 {
@@ -61,6 +76,7 @@ impl DBEngine {
         match command {
             "LIST" => DBEngine::list(&self.topics, &tokens[1..]),
             "STATUS" => self.status(),
+            "CREATE" => self.create(&tokens[1..]),
             "EXIT" => DBResponse::Exit,
             _ => DBResponse::Unknown,
         }

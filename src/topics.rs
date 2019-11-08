@@ -261,16 +261,20 @@ impl Topics {
   /// # Arguments
   ///
   /// * `topic_id` - The name of the new topic.
-  pub fn create(&self, topic_id: &str) {
+  pub fn create(&self, topic_id: &str) -> Result<String, String> {
     if self.topic_exists(&topic_id) {
-      //TODO Should return a status, not implement a side effect.
-      println!("The topic {} already exists.", topic_id);
-      return;
+      let message = format!("The topic {} already exists.", topic_id);
+      return Err(message);
     }
     match File::create(self.topic_path(topic_id)) {
-      //TODO Should return a status, not implement a side effect.
-      Ok(_) => println!("Topic {} created.", topic_id),
-      Err(_) => println!("Error occured creating topic {}", topic_id),
+      Ok(_) => {
+        let message = format!("Topic {} created.", topic_id);
+        Ok(message)
+      }
+      Err(_) => {
+        let message = format!("Error occured creating topic {}", topic_id);
+        Err(message)
+      }
     }
   }
 
