@@ -1,3 +1,9 @@
+pub enum DBResponse {
+    OK(String),
+    Invalid(String),
+    Error(String),
+}
+
 pub struct DBEngine {
     path: String,
 }
@@ -9,7 +15,8 @@ impl DBEngine {
         }
     }
 
-    pub fn process(&self, command_line: &str) {
-        println!("DBEngine({}) {}", self.path, command_line);
+    pub fn process(&self, command_line: &str) -> DBResponse {
+        let result = format!("DBEngine({}) {}", self.path, command_line);
+        DBResponse::OK(result)
     }
 }
