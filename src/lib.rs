@@ -40,7 +40,6 @@ impl DBEngine {
                 let list = topics.list();
                 DBResponse::Data(list)
             }
-            "EXIT" => DBResponse::Exit,
             _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
         }
     }
@@ -53,6 +52,7 @@ impl DBEngine {
         let command: &str = &tokens[0].to_string().trim().to_uppercase();
         match command {
             "LIST" => DBEngine::list(&self.topics, &tokens[1..]),
+            "EXIT" => DBResponse::Exit,
             _ => DBResponse::Unknown,
         }
     }
