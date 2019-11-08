@@ -40,6 +40,7 @@ impl DBEngine {
                 let list = topics.list();
                 DBResponse::Data(list)
             }
+            "EXIT" => DBResponse::Exit,
             _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
         }
     }
