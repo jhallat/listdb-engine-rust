@@ -44,6 +44,14 @@ impl DBEngine {
         }
     }
 
+    fn status(&self) -> DBResponse {
+        let mut items: Vec<String> = Vec::new();
+        let path = self.topics.db_home.clone();
+        let property = format!("database.home: {}", path);
+        items.push(property.to_string());
+        DBResponse::Data(items)
+    }
+
     pub fn process(&self, command_line: &str) -> DBResponse {
         let tokens: Vec<&str> = command_line.split(' ').collect();
         if tokens.len() == 0 {
@@ -52,6 +60,7 @@ impl DBEngine {
         let command: &str = &tokens[0].to_string().trim().to_uppercase();
         match command {
             "LIST" => DBEngine::list(&self.topics, &tokens[1..]),
+            "STATUS" => self.status(),
             "EXIT" => DBResponse::Exit,
             _ => DBResponse::Unknown,
         }
