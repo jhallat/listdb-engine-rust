@@ -206,15 +206,26 @@ impl Topic {
     DBResponse::ROk("Topic refreshed.".to_string())
   }
 
-  fn compact(&mut self) {
+  fn compact(&mut self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     let time_stamp: DateTime<Local> = Local::now();
     let move_path = format!("{}.bkp_{}", self.path, time_stamp.format("%Y%m%d_%H%M%S%f"));
-    fs::rename(&self.path, &move_path);
-    File::create(&self.path);
-    for record in self.record_map.values() {
-      self.append_data(&record);
+    match fs::rename(&self.path, &move_path) {
+      Ok(_) => match File::create(&self.path) {
+        Ok(_) => {
+          for record in self.record_map.values() {
+            self.append_data(&record);
+          }
+          self.refresh();
+          DBResponse::ROk("Topic compacted.".to_string())
+        }
+        Err(_) => {
+          DBResponse::Error("An error occured while backing up the original file.".to_string())
+        }
+      },
+      Err(_) => {
+        DBResponse::Error("An error occured while backing up the original file.".to_string())
+      }
     }
-    self.refresh();
   }
 }
 
@@ -301,13 +312,13 @@ impl Topics {
     DBResponse::OpenContext((Box::new(topic), topic_id.to_string()))
   }
 
-  pub fn compact(&self, topic_id: &str) {
+  pub fn compact(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
-      println!("{} does not exist.", topic_id);
-      return;
+      let message = format!("{} does not exist.", topic_id);
+      return DBResponse::Invalid(message.to_string());
     }
     let topic_path = self.topic_path(topic_id);
     let mut topic = Topic::new(topic_id, &topic_path);
-    topic.compact();
+    topic.compact()
   }
 }
