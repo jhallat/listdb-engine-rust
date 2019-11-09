@@ -1,3 +1,5 @@
+use crate::dbprocess::ContextProcess;
+use crate::dbprocess::DBResponse;
 use chrono::prelude::*;
 use std::collections::HashMap;
 use std::fs;
@@ -72,36 +74,15 @@ impl Topic {
     return records;
   }
 
-  fn display_prompt(topic_id: &str) {
-    print!("({})> ", topic_id);
-    io::stdout().flush().expect("Failed to flush stdout");
-  }
-
-  fn read_line() -> String {
-    let mut input = String::new();
-    io::stdin()
-      .read_line(&mut input)
-      .expect("Failed to read line");
-    input.trim().to_string()
-  }
-
-  fn get_confirmation() -> bool {
-    print!("y/n ? ");
-    io::stdout().flush().expect("Failed to flush stdout");
-    let response = Topic::read_line();
-    response == "Y" || response == "y"
-  }
-
   fn append_data(&self, record: &Record) {
     let output = format!("{}{}{}\n", record.id, record.action, record.content);
     let mut file = OpenOptions::new().append(true).open(&self.path).unwrap();
     file.write_all(output.as_bytes()).expect("Add failed");
   }
 
-  fn add(&mut self, args: &[&str]) {
+  fn add(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if args.len() == 0 {
-      println!("Nothing to add");
-      return;
+      return DBResponse::Invalid("Content for ADD cannot be empty.".to_string());
     }
     let output = args.join(" ");
     let id = Uuid::new_v4();
@@ -114,12 +95,12 @@ impl Topic {
     let index = self.line_map.len() + 1;
     self.line_map.insert(index, record.id.clone());
     self.record_map.insert(record.id.clone(), record.clone());
+    DBResponse::ROk("Content added.".to_string())
   }
 
-  fn delete(&mut self, args: &[&str]) {
+  fn delete(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if args.len() == 0 {
-      println!("Nothing to delete. Line number required");
-      return;
+      return DBResponse::Invalid("DELETE requires a line number".to_string());
     }
     let index = args[0].to_string().parse::<usize>().unwrap();
     let record = &self.line_map.get(&index);
@@ -127,59 +108,65 @@ impl Topic {
       let selected_record = record.unwrap();
       let record_value = self.record_map.get(selected_record).unwrap();
       let content = record_value.content.clone();
-      println!("Confirm deletion of \"{}\"", content);
-      let confirmed = Topic::get_confirmation();
-      if confirmed {
-        let deleted_record = Record {
-          id: selected_record.clone(),
-          action: ACTION_DELETE.to_string(),
-          content: "-".to_string(),
-        };
-        self.append_data(&deleted_record);
-        self
-          .record_map
-          .insert(deleted_record.id.clone(), deleted_record.clone());
-        println!("\"{}\" deleted", content);
-      }
+      //TODO Replace deletion confirmation
+      //println!("Confirm deletion of \"{}\"", content);
+      //let confirmed = Topic::get_confirmation();
+      //if confirmed {
+      let deleted_record = Record {
+        id: selected_record.clone(),
+        action: ACTION_DELETE.to_string(),
+        content: "-".to_string(),
+      };
+      self.append_data(&deleted_record);
+      self
+        .record_map
+        .insert(deleted_record.id.clone(), deleted_record.clone());
+      let message = format!("\"{}\" deleted", content);
+      return DBResponse::ROk(message.to_string());
+    //}
     } else {
-      println!("No item found at position {}", index);
+      let message = format!("No item found at position {}", index);
+      return DBResponse::Invalid(message.to_string());
     }
   }
 
-  fn update(&mut self, args: &[&str]) {
-    if args.len() == 0 {
-      println!("Nothing to delete. Line number required");
-      return;
+  fn update(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+    if args.len() < 2 {
+      return DBResponse::Invalid("UPDATE requires a line number and an updated value".to_string());
     }
     let index = args[0].to_string().parse::<usize>().unwrap();
+    let content = args[1..].join(" ");
     let record = &self.line_map.get(&index);
     if record.is_some() {
       let selected_record = record.unwrap();
       let record_value = self.record_map.get(selected_record).unwrap();
-      let content = record_value.content.clone();
-      println!("Update \"{}\"", content);
-      print!("new value ? ");
-      io::stdout().flush().expect("Failed to flush stdout");
-      let new_value = Topic::read_line();
-      if !new_value.to_string().is_empty() {
-        let updated_record = Record {
-          id: selected_record.clone(),
-          action: ACTION_UPDATE.to_string(),
-          content: new_value.to_string(),
-        };
-        self.append_data(&updated_record);
-        self
-          .record_map
-          .insert(updated_record.id.clone(), updated_record.clone());
-        println!("\"{}\" updated to \"{}\"", content, updated_record.content);
-      }
+      let new_value = record_value.content.clone();
+      //TODO Replace request for content
+      //println!("Update \"{}\"", content);
+      //print!("new value ? ");
+      //io::stdout().flush().expect("Failed to flush stdout");
+      //let new_value = Topic::read_line();
+      //if !new_value.to_string().is_empty() {
+      let updated_record = Record {
+        id: selected_record.clone(),
+        action: ACTION_UPDATE.to_string(),
+        content: new_value.to_string(),
+      };
+      self.append_data(&updated_record);
+      self
+        .record_map
+        .insert(updated_record.id.clone(), updated_record.clone());
+      let message = format!("\"{}\" updated to \"{}\"", content, updated_record.content);
+      DBResponse::ROk(message)
+    //}
     } else {
-      println!("No item found at position {}", index);
+      let message = format!("No item found at position {}", index);
+      DBResponse::Invalid(message.to_string())
     }
   }
 
-  fn list(&self) {
-    println!("----------------------------------------------");
+  fn list(&self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+    let mut list: Vec<String> = Vec::new();
     let record_count = self.record_map.len();
     for index in 1..record_count + 1 {
       let id = self.line_map.get(&index);
@@ -189,15 +176,16 @@ impl Topic {
         if record.is_some() {
           let record_value = record.unwrap();
           if record_value.action != ACTION_DELETE {
-            println!("{}: {}", index, record_value.content);
+            let value = format!("{}: {}", index, record_value.content);
+            list.push(value);
           }
         }
       }
     }
-    println!("----------------------------------------------");
+    DBResponse::Data(list)
   }
 
-  fn refresh(&mut self) {
+  fn refresh(&mut self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     self.line_map.clear();
     self.record_map.clear();
 
@@ -216,6 +204,7 @@ impl Topic {
       self.line_map.insert(index, value.id.clone());
       index += 1;
     }
+    DBResponse::ROk("Topic refreshed.".to_string())
   }
 
   fn compact(&mut self) {
@@ -228,22 +217,24 @@ impl Topic {
     }
     self.refresh();
   }
+}
 
-  fn open(&mut self) {
-    loop {
-      Topic::display_prompt(&self.id);
-      let line = Topic::read_line();
-      let command_line: Vec<&str> = line.split(' ').collect();
-      let command: &str = &command_line[0].to_string().trim().to_uppercase();
-      match command {
-        "CLOSE" => break,
-        "ADD" => self.add(&command_line[1..]),
-        "DELETE" => self.delete(&command_line[1..]),
-        "UPDATE" => self.update(&command_line[1..]),
-        "LIST" => self.list(),
-        "REFRESH" => self.refresh(),
-        _ => println!("Not a valid command"),
-      }
+impl ContextProcess for Topic {
+  fn id(&self) -> String {
+    self.id.to_string()
+  }
+
+  fn process(&mut self, request: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+    let command_line: Vec<&str> = request.split(' ').collect();
+    let command: &str = &command_line[0].to_string().trim().to_uppercase();
+    match command {
+      "CLOSE" => DBResponse::CloseContext,
+      "ADD" => self.add(&command_line[1..]),
+      "DELETE" => self.delete(&command_line[1..]),
+      "UPDATE" => self.update(&command_line[1..]),
+      "LIST" => self.list(),
+      "REFRESH" => self.refresh(),
+      _ => DBResponse::Unknown,
     }
   }
 }
@@ -301,14 +292,14 @@ impl Topics {
     Path::new(&topic_path).exists()
   }
 
-  pub fn open(&self, topic_id: &str) {
+  pub fn open(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
-      println!("{} does not exist.", topic_id);
-      return;
+      let message = format!("{} does not exist.", topic_id);
+      return DBResponse::Error(message);
     }
     let topic_path = self.topic_path(topic_id);
-    let mut topic = Topic::new(topic_id, &topic_path);
-    topic.open();
+    let topic = Topic::new(topic_id, &topic_path);
+    DBResponse::OpenContext((Box::new(topic), topic_id.to_string()))
   }
 
   pub fn compact(&self, topic_id: &str) {
