@@ -9,7 +9,7 @@ use topics::Topics;
 
 mod topics;
 
-mod dbprocess {
+pub mod dbprocess {
 
     use crate::topics::Topics;
 
