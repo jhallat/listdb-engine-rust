@@ -15,7 +15,7 @@ pub mod dbprocess {
 
     pub enum DBResponse<T> {
         ROk(String),
-        Data(Vec<String>),
+        Data(Vec<(String, String)>),
         Exit,
         Invalid(String),
         Error(String),
@@ -52,10 +52,10 @@ pub mod dbprocess {
         }
 
         fn status(&self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            let mut items: Vec<String> = Vec::new();
+            let mut items: Vec<(String, String)> = Vec::new();
             let path = self.topics.db_home.clone();
             let property = format!("database.home: {}", path);
-            items.push(property.to_string());
+            items.push(("".to_string(), property.to_string()));
             DBResponse::Data(items)
         }
 

@@ -165,7 +165,7 @@ impl Topic {
   }
 
   fn list(&self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-    let mut list: Vec<String> = Vec::new();
+    let mut list: Vec<(String, String)> = Vec::new();
     let record_count = self.record_map.len();
     for index in 1..record_count + 1 {
       let id = self.line_map.get(&index);
@@ -175,8 +175,10 @@ impl Topic {
         if record.is_some() {
           let record_value = record.unwrap();
           if record_value.action != ACTION_DELETE {
-            let value = format!("{}: {}", index, record_value.content);
-            list.push(value);
+            list.push((
+              record_value.id.to_string(),
+              record_value.content.to_string(),
+            ));
           }
         }
       }
@@ -279,15 +281,15 @@ impl Topics {
     }
   }
 
-  pub fn list(&self) -> Vec<String> {
-    let mut items: Vec<String> = Vec::new();
+  pub fn list(&self) -> Vec<(String, String)> {
+    let mut items: Vec<(String, String)> = Vec::new();
     let files = fs::read_dir(self.db_home.clone()).unwrap();
     for file in files {
       let path = file.unwrap().path();
       let topic_name = path.file_stem().unwrap().to_str().unwrap();
       let topic_type = path.extension().unwrap().to_str().unwrap();
       if topic_type == "tpc" {
-        items.push(topic_name.to_string());
+        items.push(("".to_string(), topic_name.to_string()));
       }
     }
     items
