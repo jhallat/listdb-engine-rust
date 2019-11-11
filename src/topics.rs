@@ -24,7 +24,6 @@ struct Record {
 struct Topic {
   path: String,
   id: String,
-  line_map: HashMap<usize, String>,
   record_map: HashMap<String, Record>,
 }
 
@@ -33,7 +32,6 @@ impl Topic {
     let mut topic = Topic {
       path: topic_path.to_string(),
       id: topic_id.to_string(),
-      line_map: HashMap::new(),
       record_map: HashMap::new(),
     };
     let records = Topic::get_records(topic_path);
@@ -45,11 +43,6 @@ impl Topic {
       } else {
         topic.record_map.insert(record.id.clone(), record.clone());
       }
-    }
-    let mut index = 1;
-    for value in topic.record_map.values() {
-      topic.line_map.insert(index, value.id.clone());
-      index += 1;
     }
 
     return topic;
@@ -91,103 +84,62 @@ impl Topic {
       content: output,
     };
     self.append_data(&record);
-    let index = self.line_map.len() + 1;
-    self.line_map.insert(index, record.id.clone());
     self.record_map.insert(record.id.clone(), record.clone());
     DBResponse::ROk("Content added.".to_string())
   }
 
   fn delete(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if args.len() == 0 {
-      return DBResponse::Invalid("DELETE requires a line number".to_string());
+      return DBResponse::Invalid("DELETE requires a key".to_string());
     }
-    let index = args[0].to_string().parse::<usize>().unwrap();
-    let record = &self.line_map.get(&index);
-    if record.is_some() {
-      let selected_record = record.unwrap();
-      let record_value = self.record_map.get(selected_record).unwrap();
-      let content = record_value.content.clone();
-      //TODO Replace deletion confirmation
-      //println!("Confirm deletion of \"{}\"", content);
-      //let confirmed = Topic::get_confirmation();
-      //if confirmed {
-      let deleted_record = Record {
-        id: selected_record.clone(),
-        action: ACTION_DELETE.to_string(),
-        content: "-".to_string(),
-      };
-      self.append_data(&deleted_record);
-      self
-        .record_map
-        .insert(deleted_record.id.clone(), deleted_record.clone());
-      let message = format!("\"{}\" deleted", content);
-      return DBResponse::ROk(message.to_string());
-    //}
-    } else {
-      let message = format!("No item found at position {}", index);
-      return DBResponse::Invalid(message.to_string());
-    }
+    let selected_record = args[0];
+    let record_value = self.record_map.get(selected_record).unwrap();
+    let content = record_value.content.clone();
+    let deleted_record = Record {
+      id: selected_record.to_string(),
+      action: ACTION_DELETE.to_string(),
+      content: "-".to_string(),
+    };
+    self.append_data(&deleted_record);
+    self
+      .record_map
+      .insert(deleted_record.id.clone(), deleted_record.clone());
+    let message = format!("\"{}\" deleted", content);
+    return DBResponse::ROk(message.to_string());
   }
 
   fn update(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if args.len() < 2 {
-      return DBResponse::Invalid("UPDATE requires a line number and an updated value".to_string());
+      return DBResponse::Invalid("UPDATE requires a key and an updated value".to_string());
     }
-    let index = args[0].to_string().parse::<usize>().unwrap();
+    let selected_record = args[0];
     let content = args[1..].join(" ");
-    let record = &self.line_map.get(&index);
-    if record.is_some() {
-      let selected_record = record.unwrap();
-      let record_value = self.record_map.get(selected_record).unwrap();
-      let new_value = record_value.content.clone();
-      //TODO Replace request for content
-      //println!("Update \"{}\"", content);
-      //print!("new value ? ");
-      //io::stdout().flush().expect("Failed to flush stdout");
-      //let new_value = Topic::read_line();
-      //if !new_value.to_string().is_empty() {
-      let updated_record = Record {
-        id: selected_record.clone(),
-        action: ACTION_UPDATE.to_string(),
-        content: new_value.to_string(),
-      };
-      self.append_data(&updated_record);
-      self
-        .record_map
-        .insert(updated_record.id.clone(), updated_record.clone());
-      let message = format!("\"{}\" updated to \"{}\"", content, updated_record.content);
-      DBResponse::ROk(message)
-    //}
-    } else {
-      let message = format!("No item found at position {}", index);
-      DBResponse::Invalid(message.to_string())
-    }
+    let record_value = self.record_map.get(selected_record).unwrap();
+    let new_value = record_value.content.clone();
+    let updated_record = Record {
+      id: selected_record.to_string(),
+      action: ACTION_UPDATE.to_string(),
+      content: new_value.to_string(),
+    };
+    self.append_data(&updated_record);
+    self
+      .record_map
+      .insert(updated_record.id.clone(), updated_record.clone());
+    let message = format!("\"{}\" updated to \"{}\"", content, updated_record.content);
+    DBResponse::ROk(message)
   }
 
   fn list(&self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     let mut list: Vec<(String, String)> = Vec::new();
-    let record_count = self.record_map.len();
-    for index in 1..record_count + 1 {
-      let id = self.line_map.get(&index);
-      if id.is_some() {
-        let record_id = id.unwrap();
-        let record = self.record_map.get(record_id);
-        if record.is_some() {
-          let record_value = record.unwrap();
-          if record_value.action != ACTION_DELETE {
-            list.push((
-              record_value.id.to_string(),
-              record_value.content.to_string(),
-            ));
-          }
-        }
+    for record in self.record_map.values() {
+      if record.action != ACTION_DELETE {
+        list.push((record.id.to_string(), record.content.to_string()));
       }
     }
     DBResponse::Data(list)
   }
 
   fn refresh(&mut self) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-    self.line_map.clear();
     self.record_map.clear();
 
     let records = Topic::get_records(&self.path);
@@ -199,11 +151,6 @@ impl Topic {
       } else {
         self.record_map.insert(record.id.clone(), record.clone());
       }
-    }
-    let mut index = 1;
-    for value in self.record_map.values() {
-      self.line_map.insert(index, value.id.clone());
-      index += 1;
     }
     DBResponse::ROk("Topic refreshed.".to_string())
   }
