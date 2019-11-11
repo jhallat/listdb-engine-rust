@@ -145,6 +145,8 @@ impl DBEngine {
     }
 
     pub fn request(&mut self, db_request: &str) -> DBResponse<String> {
+        //TODO Replace following line with debug logging?
+        println!("context stack size: {}", self.context_stack.len());
         let mut context = self.context_stack.pop_front().unwrap();
         let result = context.process(db_request);
         self.context_stack.push_front(context);
