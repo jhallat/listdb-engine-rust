@@ -1,6 +1,10 @@
 extern crate chrono;
 extern crate uuid;
 
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+
 use dbprocess::ContextProcess;
 use dbprocess::DBResponse;
 use dbprocess::RootContext;
@@ -146,7 +150,7 @@ impl DBEngine {
 
     pub fn request(&mut self, db_request: &str) -> DBResponse<String> {
         //TODO Replace following line with debug logging?
-        println!(
+        debug!(
             "context stack size: {} for '{}'",
             self.context_stack.len(),
             db_request
