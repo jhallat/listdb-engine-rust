@@ -115,17 +115,17 @@ impl Topic {
     let selected_record = args[0];
     let content = args[1..].join(" ");
     let record_value = self.record_map.get(selected_record).unwrap();
-    let new_value = record_value.content.clone();
+    let original_content = record_value.content.to_string();
     let updated_record = Record {
       id: selected_record.to_string(),
       action: ACTION_UPDATE.to_string(),
-      content: new_value.to_string(),
+      content: content.to_string(),
     };
     self.append_data(&updated_record);
     self
       .record_map
       .insert(updated_record.id.clone(), updated_record.clone());
-    let message = format!("\"{}\" updated to \"{}\"", content, updated_record.content);
+    let message = format!("\"{}\" updated to \"{}\"", original_content, content);
     DBResponse::ROk(message)
   }
 
