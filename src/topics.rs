@@ -89,6 +89,7 @@ impl Topic {
   }
 
   fn delete(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+    debug!("delete arguments: {:?}", args);
     if args.len() == 0 {
       return DBResponse::Invalid("DELETE requires a key".to_string());
     }
