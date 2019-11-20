@@ -229,6 +229,23 @@ impl Topics {
     }
   }
 
+  pub fn drop(&self, topic_id: &str) -> Result<String, String> {
+    if !self.topic_exists(&topic_id) {
+      let message = format!("The topic {} does not exist.", topic_id);
+      return Err(message);
+    }
+    match fs::remove_file(self.topic_path(topic_id)) {
+      Ok(_) => {
+        let message = format!("Topic {} dropped.", topic_id);
+        Ok(message)
+      }
+      Err(_) => {
+        let message = format!("Error occured dropping topic {}", topic_id);
+        Err(message)
+      }
+    }
+  }
+
   pub fn list(&self) -> Vec<(String, String)> {
     let mut items: Vec<(String, String)> = Vec::new();
     let files = fs::read_dir(self.db_home.clone()).unwrap();

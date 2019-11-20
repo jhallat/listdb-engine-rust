@@ -77,6 +77,23 @@ pub mod dbprocess {
             }
         }
 
+        fn drop(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            if args.len() != 2 {
+                return DBResponse::Invalid(
+                    "OPEN requires a type (i.e \"TOPIC\") and id.".to_string(),
+                );
+            }
+            let target: &str = &args[0].to_string().trim().to_uppercase();
+            let target_id: &str = &args[1].to_string().trim().to_string();
+            match target {
+                "TOPIC" => match self.topics.drop(target_id) {
+                    Ok(message) => DBResponse::ROk(message.to_string()),
+                    Err(message) => DBResponse::Error(message.to_string()),
+                },
+                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+            }
+        }
+
         fn open(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
             if args.len() != 2 {
                 return DBResponse::Invalid(
@@ -123,6 +140,7 @@ pub mod dbprocess {
                 "CREATE" => self.create(&tokens[1..]),
                 "OPEN" => self.open(&tokens[1..]),
                 "COMPACT" => self.compact(&tokens[1..]),
+                "DROP" => self.drop(&tokens[1..]),
                 "EXIT" => DBResponse::Exit,
                 _ => DBResponse::Unknown,
             }
