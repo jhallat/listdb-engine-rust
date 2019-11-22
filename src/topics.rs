@@ -252,8 +252,8 @@ impl Topics {
     for file in files {
       let path = file.unwrap().path();
       let topic_name = path.file_stem().unwrap().to_str().unwrap();
-      let topic_type = match path.extension().unwrap().to_str() {
-        Some(value) => value,
+      let topic_type = match path.extension() {
+        Some(value) => value.to_str().unwrap(),
         _ => "",
       };
       if topic_type == "tpc" {
