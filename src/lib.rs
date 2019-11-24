@@ -8,13 +8,16 @@ extern crate env_logger;
 use dbprocess::ContextProcess;
 use dbprocess::DBResponse;
 use dbprocess::RootContext;
+use directories::Directories;
 use std::collections::VecDeque;
 use topics::Topics;
 
+mod directories;
 mod topics;
 
 pub mod dbprocess {
 
+    use crate::directories::Directories;
     use crate::topics::Topics;
 
     pub enum DBResponse<T> {
@@ -41,6 +44,7 @@ pub mod dbprocess {
 
     pub struct RootContext {
         pub topics: Topics,
+        pub directories: Directories,
     }
 
     struct Request {
@@ -101,7 +105,10 @@ pub mod dbprocess {
                     let list = self.topics.list();
                     DBResponse::Data(list)
                 }
-                Target::Directory => DBResponse::Error("Not implemented".to_string()),
+                Target::Directory => {
+                    let list = self.directories.list();
+                    DBResponse::Data(list)
+                }
                 _ => DBResponse::Invalid(
                     "Valid type required. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
                 ),
@@ -209,6 +216,9 @@ impl DBEngine {
     pub fn new(path: &str) -> DBEngine {
         let root_context = RootContext {
             topics: Topics {
+                db_home: path.to_string(),
+            },
+            directories: Directories {
                 db_home: path.to_string(),
             },
         };
