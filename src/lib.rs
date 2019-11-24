@@ -76,21 +76,21 @@ pub mod dbprocess {
         match target.as_str() {
             "TOPIC" => {
                 return Ok(Request {
-                    command: command.to_string(),
+                    command: command.to_uppercase(),
                     target: Target::Topic,
                     arguments: arguments,
                 })
             }
             "DIRECTORY" => {
                 return Ok(Request {
-                    command: command.to_string(),
+                    command: command.to_uppercase(),
                     target: Target::Directory,
                     arguments: arguments,
                 })
             }
             _ => {
                 return Ok(Request {
-                    command: command.to_string(),
+                    command: command.to_uppercase(),
                     target: Target::None,
                     arguments: Some(tokens[1..].join(" ")),
                 })
