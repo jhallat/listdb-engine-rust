@@ -130,7 +130,10 @@ pub mod dbprocess {
                         Ok(message) => DBResponse::ROk(message.to_string()),
                         Err(message) => DBResponse::Error(message.to_string()),
                     },
-                    Target::Directory => DBResponse::Error("Not implmented".to_string()),
+                    Target::Directory => match self.directories.create(&arguments) {
+                        Ok(message) => DBResponse::ROk(message.to_string()),
+                        Err(message) => DBResponse::Error(message.to_string()),
+                    },
                     _ => DBResponse::Invalid(
                         "Valid type required. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
                     ),
