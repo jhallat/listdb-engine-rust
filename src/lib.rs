@@ -61,7 +61,7 @@ pub mod dbprocess {
         let command = tokens.get(0).unwrap();
         if tokens.len() == 1 {
             return Ok(Request {
-                command: command.to_string(),
+                command: command.to_uppercase(),
                 target: Target::None,
                 arguments: None,
             });
