@@ -28,6 +28,12 @@ pub mod dbprocess {
         Unknown,
     }
 
+    enum Target {
+        Topic,
+        Directory,
+        None,
+    }
+
     pub trait ContextProcess {
         fn process(&mut self, command_line: &str) -> DBResponse<(Box<dyn ContextProcess>, String)>;
         fn id(&self) -> String;
@@ -37,21 +43,68 @@ pub mod dbprocess {
         pub topics: Topics,
     }
 
+    struct Request {
+        command: String,
+        target: Target,
+        arguments: Option<String>,
+    }
+
+    fn parse_request(request: &str) -> Result<Request, &'static str> {
+        if request.len() == 0 {
+            return Err("nothing to parse");
+        }
+        let tokens: Vec<&str> = request.split(' ').collect();
+        let command = tokens.get(0).unwrap();
+        if tokens.len() == 1 {
+            return Ok(Request {
+                command: command.to_string(),
+                target: Target::None,
+                arguments: None,
+            });
+        }
+        let target_token = tokens.get(1).unwrap();
+        let target = target_token.to_uppercase();
+        let arguments = if tokens.len() > 2 {
+            Some(tokens[2..].join(" "))
+        } else {
+            None
+        };
+        match target.as_str() {
+            "TOPIC" => {
+                return Ok(Request {
+                    command: command.to_string(),
+                    target: Target::Topic,
+                    arguments: arguments,
+                })
+            }
+            "DIRECTORY" => {
+                return Ok(Request {
+                    command: command.to_string(),
+                    target: Target::Directory,
+                    arguments: arguments,
+                })
+            }
+            _ => {
+                return Ok(Request {
+                    command: command.to_string(),
+                    target: Target::None,
+                    arguments: Some(tokens[1..].join(" ")),
+                })
+            }
+        }
+    }
+
     impl RootContext {
-        fn list(topics: &Topics, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            if args.len() == 0 {
-                return DBResponse::Invalid("LIST requires a type".to_string());
-            }
-            if args.len() > 1 {
-                return DBResponse::Invalid("LIST only takes one parameter: <type>".to_string());
-            }
-            let target: &str = &args[0].to_string().trim().to_uppercase();
-            match target {
-                "TOPIC" | "TOPICS" => {
-                    let list = topics.list();
+        fn list(&self, request: &Request) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            match &request.target {
+                Target::Topic => {
+                    let list = self.topics.list();
                     DBResponse::Data(list)
                 }
-                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+                Target::Directory => DBResponse::Error("Not implemented".to_string()),
+                _ => DBResponse::Invalid(
+                    "Valid type required. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
+                ),
             }
         }
 
@@ -63,62 +116,58 @@ pub mod dbprocess {
             DBResponse::Data(items)
         }
 
-        fn create(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            if args.len() != 2 {
-                return DBResponse::Invalid("CREATE takes two parameters: <type> <id>".to_string());
-            }
-            let target: &str = &args[0].to_string().trim().to_uppercase();
-            match target {
-                "TOPIC" => match self.topics.create(args[1]) {
-                    Ok(message) => DBResponse::ROk(message.to_string()),
-                    Err(message) => DBResponse::Error(message.to_string()),
+        fn create(&self, request: &Request) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            match &request.arguments {
+                Some(arguments) => match &request.target {
+                    Target::Topic => match self.topics.create(&arguments) {
+                        Ok(message) => DBResponse::ROk(message.to_string()),
+                        Err(message) => DBResponse::Error(message.to_string()),
+                    },
+                    Target::Directory => DBResponse::Error("Not implmented".to_string()),
+                    _ => DBResponse::Invalid(
+                        "Valid type required. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
+                    ),
                 },
-                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+                None => return DBResponse::Invalid("ID required.".to_string()),
             }
         }
 
-        fn drop(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            if args.len() != 2 {
-                return DBResponse::Invalid(
-                    "OPEN requires a type (i.e \"TOPIC\") and id.".to_string(),
-                );
-            }
-            let target: &str = &args[0].to_string().trim().to_uppercase();
-            let target_id: &str = &args[1].to_string().trim().to_string();
-            match target {
-                "TOPIC" => match self.topics.drop(target_id) {
-                    Ok(message) => DBResponse::ROk(message.to_string()),
-                    Err(message) => DBResponse::Error(message.to_string()),
+        fn drop(&self, request: &Request) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            match &request.arguments {
+                Some(arguments) => match &request.target {
+                    Target::Topic => match self.topics.drop(&arguments) {
+                        Ok(message) => DBResponse::ROk(message.to_string()),
+                        Err(message) => DBResponse::Error(message.to_string()),
+                    },
+                    Target::Directory => DBResponse::Error("Not implmented".to_string()),
+                    _ => DBResponse::Invalid(
+                        "Valid type required. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
+                    ),
                 },
-                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+                None => return DBResponse::Invalid("ID required.".to_string()),
             }
         }
 
-        fn open(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            if args.len() != 2 {
-                return DBResponse::Invalid(
-                    "OPEN requires a type (i.e \"TOPIC\") and id.".to_string(),
-                );
-            }
-            let target: &str = &args[0].to_string().trim().to_uppercase();
-            let target_id: &str = &args[1].to_string().trim().to_string();
-            match target {
-                "TOPIC" => self.topics.open(target_id),
-                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+        fn open(&self, request: &Request) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            match &request.arguments {
+                Some(arguments) => match &request.target {
+                    Target::Topic => self.topics.open(&arguments),
+                    Target::Directory => DBResponse::Error("Not implmented".to_string()),
+                    _ => DBResponse::Invalid(
+                        "Not a valid type. (expected \"TOPIC\" or \"DIRECTORY\")".to_string(),
+                    ),
+                },
+                None => return DBResponse::Invalid("ID required.".to_string()),
             }
         }
 
-        fn compact(&self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            if args.len() != 2 {
-                return DBResponse::Invalid(
-                    "COMPACT requires a type (i.e \"TOPIC\") and id.".to_string(),
-                );
-            }
-            let target: &str = &args[0].to_string().trim().to_uppercase();
-            let target_id: &str = &args[1].to_string().trim().to_string();
-            match target {
-                "TOPIC" => self.topics.compact(target_id),
-                _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+        fn compact(&self, request: &Request) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            match &request.arguments {
+                Some(arguments) => match &request.target {
+                    Target::Topic => self.topics.compact(arguments),
+                    _ => DBResponse::Invalid("Not a valid type. (expected \"TOPIC\")".to_string()),
+                },
+                None => return DBResponse::Invalid("ID required.".to_string()),
             }
         }
     }
@@ -128,21 +177,25 @@ pub mod dbprocess {
             "".to_string()
         }
 
-        fn process(&mut self, command_line: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
-            let tokens: Vec<&str> = command_line.split(' ').collect();
-            if tokens.len() == 0 {
-                return DBResponse::Invalid("Empty command string".to_string());
-            }
-            let command: &str = &tokens[0].to_string().trim().to_uppercase();
-            match command {
-                "LIST" => RootContext::list(&self.topics, &tokens[1..]),
-                "STATUS" => self.status(),
-                "CREATE" => self.create(&tokens[1..]),
-                "OPEN" => self.open(&tokens[1..]),
-                "COMPACT" => self.compact(&tokens[1..]),
-                "DROP" => self.drop(&tokens[1..]),
-                "EXIT" => DBResponse::Exit,
-                _ => DBResponse::Unknown,
+        fn process(&mut self, request_text: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+            //let tokens: Vec<&str> = command_line.split(' ').collect();
+            //if tokens.len() == 0 {
+            //    return DBResponse::Invalid("Empty command string".to_string());
+            //}
+            //let command: &str = &tokens[0].to_string().trim().to_uppercase();
+
+            match parse_request(request_text) {
+                Ok(parsed) => match parsed.command.as_str() {
+                    "LIST" => self.list(&parsed),
+                    "STATUS" => self.status(),
+                    "CREATE" => self.create(&parsed),
+                    "OPEN" => self.open(&parsed),
+                    "COMPACT" => self.compact(&parsed),
+                    "DROP" => self.drop(&parsed),
+                    "EXIT" => DBResponse::Exit,
+                    _ => DBResponse::Unknown,
+                },
+                Err(message) => return DBResponse::Error(message.to_string()),
             }
         }
     }

@@ -211,7 +211,8 @@ impl Topics {
   ///
   /// # Arguments
   ///
-  /// * `topic_id` - The name of the new topic.
+  /// * `args` - List of arguments for topic creation.
+  /// - topic_id (required) Id of the topic to be created.
   pub fn create(&self, topic_id: &str) -> Result<String, String> {
     if self.topic_exists(&topic_id) {
       let message = format!("The topic {} already exists.", topic_id);
@@ -285,7 +286,7 @@ impl Topics {
   pub fn compact(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
       let message = format!("{} does not exist.", topic_id);
-      return DBResponse::Invalid(message.to_string());
+      return DBResponse::Invalid(message);
     }
     let topic_path = self.topic_path(topic_id);
     let mut topic = Topic::new(topic_id, &topic_path);
