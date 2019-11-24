@@ -28,7 +28,7 @@ pub mod dbprocess {
         Error(String),
         OpenContext(T),
         CloseContext,
-        Unknown,
+        Unknown(String),
     }
 
     enum Target {
@@ -200,7 +200,7 @@ pub mod dbprocess {
                     "COMPACT" => self.compact(&parsed),
                     "DROP" => self.drop(&parsed),
                     "EXIT" => DBResponse::Exit,
-                    _ => DBResponse::Unknown,
+                    _ => DBResponse::Unknown(parsed.command),
                 },
                 Err(message) => return DBResponse::Error(message.to_string()),
             }
@@ -255,7 +255,7 @@ impl DBEngine {
                 let message = new_context.unwrap().id();
                 DBResponse::OpenContext(message)
             }
-            DBResponse::Unknown => DBResponse::Unknown,
+            DBResponse::Unknown(message) => DBResponse::Unknown(message),
         }
     }
 }

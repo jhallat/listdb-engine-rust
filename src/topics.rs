@@ -194,7 +194,7 @@ impl ContextProcess for Topic {
       "UPDATE" => self.update(&command_line[1..]),
       "LIST" => self.list(),
       "REFRESH" => self.refresh(),
-      _ => DBResponse::Unknown,
+      _ => DBResponse::Unknown(command.to_string()),
     }
   }
 }
