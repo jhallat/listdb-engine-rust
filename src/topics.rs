@@ -1,3 +1,4 @@
+use crate::dbprocess::ContextController;
 use crate::dbprocess::ContextProcess;
 use crate::dbprocess::DBResponse;
 use chrono::prelude::*;
@@ -200,12 +201,31 @@ impl ContextProcess for Topic {
 }
 
 /// Manages topics in the database
-pub struct Topics {
+pub struct TopicController {
   /// Location of the database
   pub db_home: String,
+  pub relative_path: String,
 }
 
-impl Topics {
+impl TopicController {
+  pub fn new(db_home: &str, relative_path: &str) -> TopicController {
+    TopicController {
+      db_home: db_home.to_string(),
+      relative_path: relative_path.to_string(),
+    }
+  }
+
+  fn topic_path(&self, topic_id: &str) -> String {
+    format!("{}\\{}.tpc", self.db_home, topic_id)
+  }
+
+  fn topic_exists(&self, topic_id: &str) -> bool {
+    let topic_path = self.topic_path(topic_id);
+    Path::new(&topic_path).exists()
+  }
+}
+
+impl ContextController for TopicController {
   /// Creates a topic in the database. The name of the topic must be
   /// unique. If the topic already exists, a new topic will not be created.
   ///
@@ -213,7 +233,7 @@ impl Topics {
   ///
   /// * `args` - List of arguments for topic creation.
   /// - topic_id (required) Id of the topic to be created.
-  pub fn create(&self, topic_id: &str) -> Result<String, String> {
+  fn create(&self, topic_id: &str) -> Result<String, String> {
     if self.topic_exists(&topic_id) {
       let message = format!("The topic {} already exists.", topic_id);
       return Err(message);
@@ -230,7 +250,7 @@ impl Topics {
     }
   }
 
-  pub fn drop(&self, topic_id: &str) -> Result<String, String> {
+  fn drop_item(&self, topic_id: &str) -> Result<String, String> {
     if !self.topic_exists(&topic_id) {
       let message = format!("The topic {} does not exist.", topic_id);
       return Err(message);
@@ -247,7 +267,7 @@ impl Topics {
     }
   }
 
-  pub fn list(&self) -> Vec<(String, String)> {
+  fn list(&self) -> Vec<(String, String)> {
     let mut items: Vec<(String, String)> = Vec::new();
     let files = fs::read_dir(self.db_home.clone()).unwrap();
     for file in files {
@@ -264,16 +284,7 @@ impl Topics {
     items
   }
 
-  fn topic_path(&self, topic_id: &str) -> String {
-    format!("{}\\{}.tpc", self.db_home, topic_id)
-  }
-
-  fn topic_exists(&self, topic_id: &str) -> bool {
-    let topic_path = self.topic_path(topic_id);
-    Path::new(&topic_path).exists()
-  }
-
-  pub fn open(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+  fn open(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
       let message = format!("{} does not exist.", topic_id);
       return DBResponse::Error(message);
@@ -283,7 +294,7 @@ impl Topics {
     DBResponse::OpenContext((Box::new(topic), topic_id.to_string()))
   }
 
-  pub fn compact(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
+  fn compact(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
       let message = format!("{} does not exist.", topic_id);
       return DBResponse::Invalid(message);
