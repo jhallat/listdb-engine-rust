@@ -292,7 +292,8 @@ impl ContextController for TopicController {
     }
     let topic_path = self.topic_path(topic_id);
     let topic = Topic::new(topic_id, &topic_path);
-    DBResponse::OpenContext((Box::new(topic), topic_id.to_string()))
+    let context_label = format!("{}[{}]", self.relative_path, topic_id);
+    DBResponse::OpenContext((Box::new(topic), context_label))
   }
 
   fn compact(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
