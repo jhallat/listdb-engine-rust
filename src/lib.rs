@@ -45,7 +45,7 @@ pub struct DBEngine {
 
 impl DBEngine {
     pub fn new(path: &str) -> DBEngine {
-        let root_context = DirectoryContext::new(&path, "");
+        let root_context = DirectoryContext::new(&path, "\\");
         let mut db_engine = DBEngine {
             context_stack: VecDeque::new(),
         };

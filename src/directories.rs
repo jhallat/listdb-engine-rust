@@ -230,7 +230,8 @@ impl ContextController for DirectoryController {
 
   fn list(&self) -> Vec<(String, String)> {
     let mut items: Vec<(String, String)> = Vec::new();
-    let files = fs::read_dir(self.db_home.clone()).unwrap();
+    let current_dir = format!("{}{}", self.db_home, self.relative_path);
+    let files = fs::read_dir(current_dir).unwrap();
     for file_result in files {
       let file = file_result.unwrap();
       let metadata = file.metadata();
