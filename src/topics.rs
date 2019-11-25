@@ -216,7 +216,7 @@ impl TopicController {
   }
 
   fn topic_path(&self, topic_id: &str) -> String {
-    format!("{}\\{}.tpc", self.db_home, topic_id)
+    format!("{}{}{}.tpc", self.db_home, self.relative_path, topic_id)
   }
 
   fn topic_exists(&self, topic_id: &str) -> bool {

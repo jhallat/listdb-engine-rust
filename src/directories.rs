@@ -203,6 +203,13 @@ impl ContextProcess for DirectoryContext {
         "COMPACT" => self.compact(&parsed),
         "DROP" => self.drop(&parsed),
         "EXIT" => DBResponse::Exit,
+        "CLOSE" => {
+          if self.relative_path == "\\" {
+            DBResponse::Invalid("Cannot close root directory".to_string())
+          } else {
+            DBResponse::CloseContext
+          }
+        }
         _ => DBResponse::Unknown(parsed.command),
       },
       Err(message) => return DBResponse::Error(message.to_string()),
