@@ -266,7 +266,7 @@ impl ContextController for DirectoryController {
       let message = format!("{} does not exist.", directory_id);
       return DBResponse::Error(message);
     }
-    let new_path = format!("{}\\{}", self.relative_path, directory_id);
+    let new_path = format!("{}{}\\", self.relative_path, directory_id);
     let directory = DirectoryContext::new(&self.db_home, &new_path);
     DBResponse::OpenContext((Box::new(directory), new_path.to_string()))
   }
