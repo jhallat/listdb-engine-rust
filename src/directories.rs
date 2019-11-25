@@ -268,7 +268,7 @@ impl ContextController for DirectoryController {
     }
     let new_path = format!("{}\\{}", self.relative_path, directory_id);
     let directory = DirectoryContext::new(&self.db_home, &new_path);
-    DBResponse::OpenContext((Box::new(directory), directory_id.to_string()))
+    DBResponse::OpenContext((Box::new(directory), new_path.to_string()))
   }
 
   fn compact(&self, _directory_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {

@@ -269,7 +269,8 @@ impl ContextController for TopicController {
 
   fn list(&self) -> Vec<(String, String)> {
     let mut items: Vec<(String, String)> = Vec::new();
-    let files = fs::read_dir(self.db_home.clone()).unwrap();
+    let current_dir = format!("{}{}", self.db_home, self.relative_path);
+    let files = fs::read_dir(current_dir).unwrap();
     for file in files {
       let path = file.unwrap().path();
       let topic_name = path.file_stem().unwrap().to_str().unwrap();
