@@ -35,7 +35,7 @@ impl DirectoryController {
   }
 
   fn directory_path(&self, directory_id: &str) -> String {
-    format!("{}\\{}", self.db_home, directory_id)
+    format!("{}{}{}", self.db_home, self.relative_path, directory_id)
   }
 
   fn directory_exists(&self, directory_id: &str) -> bool {
