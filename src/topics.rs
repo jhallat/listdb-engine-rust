@@ -2,6 +2,7 @@ use crate::dbprocess::ContextController;
 use crate::dbprocess::ContextProcess;
 use crate::dbprocess::DBResponse;
 use chrono::prelude::*;
+use log::debug;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -216,7 +217,9 @@ impl TopicController {
   }
 
   fn topic_path(&self, topic_id: &str) -> String {
-    format!("{}{}{}.tpc", self.db_home, self.relative_path, topic_id)
+    let path = format!("{}{}{}.tpc", self.db_home, self.relative_path, topic_id);
+    debug!("topic path = {}", path);
+    path
   }
 
   fn topic_exists(&self, topic_id: &str) -> bool {
@@ -287,7 +290,7 @@ impl ContextController for TopicController {
 
   fn open(&self, topic_id: &str) -> DBResponse<(Box<dyn ContextProcess>, String)> {
     if !self.topic_exists(&topic_id) {
-      let message = format!("{} does not exist.", topic_id);
+      let message = format!("{} does not exist at {}.", topic_id, self.relative_path);
       return DBResponse::Error(message);
     }
     let topic_path = self.topic_path(topic_id);
