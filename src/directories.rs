@@ -57,6 +57,7 @@ impl DirectoryContext {
       relative_path: relative_path.to_string(),
       controller_map: HashMap::new(),
     };
+    debug!("creating topic controller for path {}", relative_path);
     directory_context.controller_map.insert(
       Target::Topic,
       Box::new(TopicController::new(&db_home, &relative_path)),
