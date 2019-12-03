@@ -295,6 +295,7 @@ impl ContextController for TopicController {
     }
     let topic_path = self.topic_path(topic_id);
     let topic = Topic::new(topic_id, &topic_path);
+    debug!("topic opend for path {}", topic_path);
     let context_label = format!("{}[{}]", self.relative_path, topic_id);
     DBResponse::OpenContext((Box::new(topic), context_label))
   }
