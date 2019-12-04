@@ -87,7 +87,7 @@ impl Topic {
     };
     self.append_data(&record);
     self.record_map.insert(record.id.clone(), record.clone());
-    DBResponse::ROk("Content added.".to_string())
+    DBResponse::Created(id.to_string())
   }
 
   fn delete(&mut self, args: &[&str]) -> DBResponse<(Box<dyn ContextProcess>, String)> {

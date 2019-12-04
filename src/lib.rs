@@ -22,6 +22,7 @@ pub mod dbprocess {
         Error(String),
         OpenContext(T),
         CloseContext,
+        Created(String),
         Unknown(String),
     }
 
@@ -65,6 +66,7 @@ impl DBEngine {
         self.context_stack.push_front(context);
         match result {
             DBResponse::ROk(message) => DBResponse::ROk(message),
+            DBResponse::Created(message) => DBResponse::Created(message),
             DBResponse::Data(data) => DBResponse::Data(data),
             DBResponse::Exit => DBResponse::Exit,
             DBResponse::Invalid(message) => DBResponse::Invalid(message),
