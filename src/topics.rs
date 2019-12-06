@@ -58,12 +58,14 @@ impl Topic {
     lines.pop();
     let mut records: Vec<Record> = Vec::new();
     for line in lines {
-      let record = Record {
-        id: line[0..36].to_string(),
-        action: line[36..37].to_string(),
-        content: line[37..].to_string(),
-      };
-      records.push(record);
+      if line.len() > 37 {
+        let record = Record {
+          id: line[0..36].to_string(),
+          action: line[36..37].to_string(),
+          content: line[37..].to_string(),
+        };
+        records.push(record);
+      }
     }
     return records;
   }
